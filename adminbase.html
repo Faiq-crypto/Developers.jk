@@ -3,191 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BaseMiner | Admin Pro v2</title>
+    <title>BaseMiner | Master Console</title>
     <!-- Ethers.js v6 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
             --bg-dark: #05060a;
             --panel-bg: #11141d;
+            --panel-border: #222630;
             --accent: #0052ff; /* Base Blue */
-            --accent-hover: #004ad1;
-            --danger: #ff2d55;
-            --danger-hover: #d61e40;
-            --success: #00c853;
-            --warning: #ffab00;
+            --accent-glow: rgba(0, 82, 255, 0.3);
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
             --text-main: #ffffff;
             --text-muted: #94a3b8;
-            --border: #222630;
         }
 
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; background: var(--bg-dark); font-family: 'Inter', sans-serif; color: var(--text-main); font-size: 14px; }
+        body { margin: 0; padding: 0; background: var(--bg-dark); font-family: 'Inter', sans-serif; color: var(--text-main); font-size: 14px; overflow-x: hidden; }
         
         /* --- Navbar --- */
         .navbar {
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
-            padding: 15px 20px; background: rgba(17, 20, 29, 0.95);
-            border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 100; gap: 10px;
+            background: rgba(17, 20, 29, 0.8); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 15px 20px; position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .logo { font-size: 1.3rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px; }
+        .logo { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
         .logo span { color: var(--accent); }
-        
-        .nav-controls { display: flex; align-items: center; gap: 15px; }
-        .status-dot { width: 8px; height: 8px; background: #555; border-radius: 50%; display: inline-block; }
-        .status-dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); }
+        .logo-badge { background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; letter-spacing: 1px; }
 
-        .container { max-width: 1400px; margin: 25px auto; padding: 0 15px; }
-        
-        /* --- Grid Layout --- */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        
-        .card {
-            background: var(--panel-bg); border: 1px solid var(--border);
-            border-radius: 16px; padding: 20px; position: relative;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        .nav-actions { display: flex; align-items: center; gap: 15px; }
+        .status-pill {
+            display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-muted);
+            background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 20px;
         }
-        .card h3 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-        .card .value { font-size: 1.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #444; }
+        .dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* --- Layout --- */
+        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
         
-        /* --- Inputs & Buttons --- */
-        .control-group { margin-top: 15px; display: flex; gap: 8px; }
+        .grid-dashboard {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 16px; padding: 24px; position: relative;
+            transition: transform 0.2s; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .card:hover { border-color: #333; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center; }
+        .card-title { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-value { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 700; color: #fff; }
+        .card-sub { font-size: 0.9rem; color: var(--text-muted); font-weight: 400; margin-left: 5px; }
+
+        /* --- Risk Card Special --- */
+        .card-risk { border: 1px solid var(--accent); background: linear-gradient(145deg, rgba(0,82,255,0.05) 0%, transparent 100%); }
+        .card-risk .card-value { color: var(--accent); text-shadow: 0 0 20px rgba(0,82,255,0.4); }
+
+        /* --- Controls --- */
+        .input-group { display: flex; gap: 8px; margin-top: 15px; }
         input {
-            background: #080a0f; border: 1px solid var(--border); color: white;
-            padding: 12px; border-radius: 8px; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white;
+            padding: 10px 14px; border-radius: 8px; flex: 1; font-family: 'JetBrains Mono';
             transition: 0.2s;
         }
         input:focus { border-color: var(--accent); }
-        
+
+        /* --- Buttons --- */
         .btn {
-            padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer;
-            font-weight: 700; font-size: 0.9rem; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
+            padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer;
+            font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s ease;
         }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(0,82,255,0.2); }
+        .btn-primary:hover { background: #0042cc; transform: translateY(-1px); }
         
-        .btn-danger { background: rgba(255, 45, 85, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
         .btn-danger:hover { background: var(--danger); color: white; }
-        
-        .btn-warning { background: var(--warning); color: #000; }
-        .btn-warning:hover { filter: brightness(1.1); }
 
-        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
-        .btn-ghost:hover { border-color: white; color: white; }
+        .btn-warning { background: var(--warning); color: #000; font-weight: 800; }
+        .btn-warning:hover { filter: brightness(1.1); box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
 
-        .btn-pull {
-            background: var(--danger); color: white; width: 100%;
-            font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.3); font-size: 0.8rem;
+        .btn-ghost { background: transparent; border: 1px solid var(--panel-border); color: var(--text-muted); }
+        .btn-ghost:hover { border-color: #fff; color: #fff; }
+
+        /* --- Table --- */
+        .table-container {
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;
         }
-        .btn-pull:active { transform: scale(0.98); }
-        .btn-pull:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
-
-        /* --- Table Section --- */
-        .table-card {
-            background: var(--panel-bg); border-radius: 16px; border: 1px solid var(--border);
-            overflow: hidden; display: flex; flex-direction: column;
-        }
-        
         .table-toolbar {
-            padding: 15px 20px; border-bottom: 1px solid var(--border);
-            display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;
+            padding: 15px 20px; border-bottom: 1px solid var(--panel-border);
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
         }
-        
-        .search-box {
-            position: relative; max-width: 300px; width: 100%;
-        }
-        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-        .search-box input { padding-left: 35px; background: #080a0f; width: 100%; }
+        .search-wrapper { position: relative; max-width: 300px; width: 100%; }
+        .search-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-wrapper input { padding-left: 35px; width: 100%; background: #05060a; }
 
-        .table-wrapper {
-            width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
-        }
+        .table-scroll { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th { text-align: left; padding: 18px 20px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; background: rgba(0,0,0,0.2); white-space: nowrap; }
-        td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; vertical-align: middle; }
+        th { text-align: left; padding: 16px 20px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--panel-border); background: rgba(0,0,0,0.2); }
+        td { padding: 14px 20px; border-bottom: 1px solid var(--panel-border); font-family: 'JetBrains Mono'; font-size: 0.9rem; }
         tr:last-child td { border-bottom: none; }
         tr:hover { background: rgba(255,255,255,0.02); }
 
-        /* Badges */
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .badge-safe { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
-        .badge-risk { background: rgba(255, 45, 85, 0.1); color: var(--danger); border: 1px solid var(--danger); animation: pulse 2s infinite; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* --- Badges --- */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .b-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .b-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
 
-        /* --- Overlay/Toast --- */
-        #toast {
-            visibility: hidden; min-width: 250px; background-color: #1a1d26; color: #fff; text-align: center;
-            border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px;
-            transform: translateX(-50%); border: 1px solid var(--accent); box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        /* --- Wallet Modal (Advanced) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            z-index: 999; display: none; align-items: center; justify-content: center;
         }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
+        .wallet-modal {
+            background: #1a1d26; width: 100%; max-width: 380px;
+            border-radius: 20px; border: 1px solid var(--panel-border);
+            padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { margin: 0; font-size: 1.1rem; }
+        .close-modal { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
+        
+        .wallet-list { display: flex; flex-direction: column; gap: 10px; }
+        .wallet-option {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: rgba(255,255,255,0.03);
+            border: 1px solid var(--panel-border); border-radius: 12px;
+            cursor: pointer; transition: 0.2s; color: white;
+        }
+        .wallet-option:hover { background: rgba(255,255,255,0.08); border-color: var(--accent); }
+        .wallet-icon { width: 32px; height: 32px; border-radius: 8px; }
 
-        /* Mobile Adjustments */
+        /* --- Toast --- */
+        #toast {
+            visibility: hidden; min-width: 250px; background: #1a1d26; color: #fff;
+            border-radius: 8px; padding: 16px; position: fixed; z-index: 1000;
+            left: 50%; bottom: 30px; transform: translateX(-50%);
+            border: 1px solid var(--accent); box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center;
+        }
+        #toast.show { visibility: visible; animation: fadeup 0.3s forwards; }
+
+        @keyframes fadeup { from{opacity:0; transform:translate(-50%, 20px);} to{opacity:1; transform:translate(-50%, 0);} }
+        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+        /* Mobile */
         @media (max-width: 768px) {
             .navbar { flex-direction: column; align-items: stretch; gap: 15px; }
-            .nav-controls { justify-content: space-between; }
+            .nav-actions { justify-content: space-between; }
             .table-toolbar { flex-direction: column; align-items: stretch; }
             .btn { width: 100%; justify-content: center; }
-            #connectBtn { width: auto; }
         }
     </style>
 </head>
 <body>
 
-<!-- Navigation -->
+<!-- Navbar -->
 <nav class="navbar">
-    <div class="logo"><i class="fa-solid fa-bolt"></i> Base<span>Miner</span><small style="font-size:0.5em; opacity:0.5; margin-left:10px;">V2 ADMIN</small></div>
-    <div class="nav-controls">
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted);">
-            <div id="netDot" class="status-dot"></div> 
-            <span id="netText">Disconnected</span>
+    <div class="logo">
+        <i class="fa-solid fa-layer-group"></i> BaseMiner <span class="logo-badge">ADMIN v3.0</span>
+    </div>
+    <div class="nav-actions">
+        <div class="status-pill">
+            <div id="netDot" class="dot"></div>
+            <span id="netText">Offline</span>
         </div>
-        <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">
-            <i class="fa-solid fa-wallet"></i> Connect
+        <button id="connectBtn" class="btn btn-primary" onclick="openWalletModal()">
+            <i class="fa-solid fa-wallet"></i> Connect Wallet
         </button>
     </div>
 </nav>
 
 <div class="container">
 
-    <!-- Stats Grid -->
-    <div class="grid">
-        <!-- Pool Fund -->
+    <!-- Dashboard Grid -->
+    <div class="grid-dashboard">
+        
+        <!-- Card 1: Pool Balance -->
         <div class="card">
-            <h3>Reward Pool</h3>
-            <div class="value" id="poolBalance">0.00 <span style="font-size:0.5em; color:var(--text-muted)">USDC</span></div>
-            <div class="control-group">
+            <div class="card-header">
+                <span class="card-title">Reward Pool</span>
+                <i class="fa-solid fa-sack-dollar" style="color:#10b981"></i>
+            </div>
+            <div class="card-value" id="poolBalance">0.00 <span class="card-sub">USDC</span></div>
+            <div class="input-group">
                 <input type="number" id="fundAmount" placeholder="Amount">
                 <button class="btn btn-primary" onclick="fundPool()">Fund</button>
             </div>
         </div>
 
-        <!-- Total Risk (New) -->
-        <div class="card" style="border-color: var(--accent);">
-            <h3 style="color:var(--accent)">Total Pullable (Risk Value)</h3>
-            <div class="value" id="totalRiskValue" style="color:var(--accent)">0.00 <span style="font-size:0.5em;">USDC</span></div>
-            <div class="control-group">
+        <!-- Card 2: RISK & PULL ALL (Requested Feature) -->
+        <div class="card card-risk">
+            <div class="card-header">
+                <span class="card-title" style="color:var(--accent)">Total Pullable (Risk Value)</span>
+                <i class="fa-solid fa-bolt" style="color:var(--accent)"></i>
+            </div>
+            <div class="card-value" id="totalRiskValue">0.00 <span class="card-sub">USDC</span></div>
+            <div style="margin-top:15px;">
                 <button class="btn btn-warning" style="width:100%" onclick="batchPullAll()">
                     <i class="fa-solid fa-fire"></i> PULL ALL ELIGIBLE
                 </button>
+                <div style="text-align:center; font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:8px;">
+                    Sequential Batch Processor
+                </div>
             </div>
         </div>
 
-        <!-- Config -->
+        <!-- Card 3: Config -->
         <div class="card">
-            <h3>System Controls</h3>
-            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center; justify-content:space-between;">
+            <div class="card-header">
+                <span class="card-title">Protocol Status</span>
+                <i class="fa-solid fa-gears"></i>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span style="color:var(--text-muted)">Daily Rate:</span>
                 <div style="display:flex; gap:5px;">
                     <input type="number" id="dailyRateInput" placeholder="%" style="width:80px; padding:6px;">
@@ -201,24 +241,24 @@
     </div>
 
     <!-- Main Table -->
-    <div class="table-card">
+    <div class="table-container">
         <div class="table-toolbar">
-            <div class="search-box">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search address...">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search user address...">
             </div>
-            <div style="display:flex; gap:10px;">
-                <span style="color:var(--text-muted); font-size:0.8rem; line-height:35px;">Users: <strong id="totalUsers">0</strong></span>
-                <button class="btn btn-ghost" onclick="loadData()"><i class="fa-solid fa-rotate"></i></button>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <span style="color:var(--text-muted); font-size:0.85rem;">Total Users: <strong id="totalUsers" style="color:#fff">0</strong></span>
+                <button class="btn btn-ghost" onclick="loadData()"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
         </div>
-        
-        <div class="table-wrapper">
-            <table id="mainTable">
+
+        <div class="table-scroll">
+            <table>
                 <thead>
                     <tr>
-                        <th>Address</th>
-                        <th>Balance</th>
+                        <th>Wallet</th>
+                        <th>Balance (USDC)</th>
                         <th>Allowance</th>
                         <th>Status</th>
                         <th>Pending</th>
@@ -226,23 +266,39 @@
                     </tr>
                 </thead>
                 <tbody id="userTable">
-                    <tr><td colspan="6" style="text-align:center; padding:40px; color:#555;">Connect wallet to scan database...</td></tr>
+                    <tr><td colspan="6" style="text-align:center; padding:50px; color:#555;">
+                        <i class="fa-solid fa-link"></i> Connect wallet to view data
+                    </td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <!-- Danger Zone -->
-    <div style="margin-top:40px; border-top:1px solid var(--border); padding-top:30px; text-align:center;">
-        <button class="btn btn-pull" style="max-width:300px; margin:0 auto; padding:18px; font-size:1rem;" onclick="emergencyWithdraw()">
-            <i class="fa-solid fa-triangle-exclamation"></i> EMERGENCY DRAIN CONTRACT
+    <div style="margin: 50px auto; text-align:center; border-top:1px solid var(--panel-border); padding-top:40px; max-width:600px;">
+        <h3 style="color:var(--danger); margin-bottom:15px;"><i class="fa-solid fa-triangle-exclamation"></i> DANGER ZONE</h3>
+        <button class="btn btn-danger" style="width:100%; padding:15px; font-size:1rem;" onclick="emergencyWithdraw()">
+            EMERGENCY DRAIN CONTRACT
         </button>
-        <p style="color:var(--text-muted); margin-top:10px; font-size:0.8rem;">Transfers all pool funds to admin wallet</p>
+        <p style="color:var(--text-muted); font-size:0.8rem; margin-top:10px;">Warning: This action will withdraw all LP funds to the admin wallet.</p>
     </div>
 
 </div>
 
-<div id="toast"></div>
+<!-- Wallet Selection Modal -->
+<div class="modal-overlay" id="walletModal">
+    <div class="wallet-modal">
+        <div class="modal-header">
+            <h3>Connect Wallet</h3>
+            <button class="close-modal" onclick="closeWalletModal()">&times;</button>
+        </div>
+        <div class="wallet-list" id="walletList">
+            <!-- Wallets injected here by JS -->
+        </div>
+    </div>
+</div>
+
+<div id="toast">Message</div>
 
 <script>
     // ================= CONFIGURATION =================
@@ -271,30 +327,93 @@
     ];
 
     let provider, signer, contract, usdcContract;
-    let allMinersData = []; // Store data for search/batching
+    let allMinersData = [];
+    let discoveredProviders = []; // Store EIP-6963 providers
 
-    // --- Connect Logic ---
-    async function connectWallet() {
-        if (!window.ethereum) return showToast("⚠️ No Wallet Found");
+    // --- EIP-6963: Wallet Discovery Logic ---
+    window.addEventListener("eip6963:announceProvider", (event) => {
+        const p = event.detail;
+        // Avoid duplicates
+        if (!discoveredProviders.some(dp => dp.info.uuid === p.info.uuid)) {
+            discoveredProviders.push(p);
+        }
+    });
+
+    // Fire announcement request immediately
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    // --- UI Logic ---
+
+    function openWalletModal() {
+        const list = document.getElementById("walletList");
+        list.innerHTML = "";
+        const modal = document.getElementById("walletModal");
+        
+        // 1. Render Detected Wallets (MetaMask, Coinbase, Phantom, etc.)
+        discoveredProviders.forEach(p => {
+            const btn = document.createElement("div");
+            btn.className = "wallet-option";
+            btn.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="${p.info.icon}" class="wallet-icon" alt="${p.info.name}">
+                    <span>${p.info.name}</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="font-size:0.8rem; opacity:0.5;"></i>
+            `;
+            btn.onclick = () => connectWithProvider(p.provider);
+            list.appendChild(btn);
+        });
+
+        // 2. Fallback for Standard Injection (window.ethereum)
+        if (window.ethereum) {
+            const btn = document.createElement("div");
+            btn.className = "wallet-option";
+            btn.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#000;">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <span>Browser Wallet (Default)</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="font-size:0.8rem; opacity:0.5;"></i>
+            `;
+            btn.onclick = () => connectWithProvider(window.ethereum);
+            list.appendChild(btn);
+        }
+
+        modal.classList.add("active");
+    }
+
+    function closeWalletModal() {
+        document.getElementById("walletModal").classList.remove("active");
+    }
+
+    // --- Connection Core ---
+    async function connectWithProvider(selectedProvider) {
+        closeWalletModal();
         const btn = document.getElementById("connectBtn");
-        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting...`;
 
         try {
-            provider = new ethers.BrowserProvider(window.ethereum);
+            // Init Provider
+            provider = new ethers.BrowserProvider(selectedProvider);
+            
+            // Request Account
             await provider.send("eth_requestAccounts", []);
             
-            // Switch Network
+            // Check Network
             const network = await provider.getNetwork();
             if (network.chainId !== BASE_CHAIN_ID_DEC) {
                 try {
-                    await window.ethereum.request({
+                    await selectedProvider.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: BASE_CHAIN_ID_HEX }],
                     });
-                    provider = new ethers.BrowserProvider(window.ethereum); // Re-init
+                    // Re-init after switch to be safe
+                    provider = new ethers.BrowserProvider(selectedProvider);
                 } catch (e) {
-                    if(e.code === 4902) {
-                        await window.ethereum.request({
+                    if (e.code === 4902) {
+                        await selectedProvider.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: BASE_CHAIN_ID_HEX,
@@ -304,39 +423,41 @@
                                 blockExplorerUrls: ['https://basescan.org']
                             }],
                         });
-                        provider = new ethers.BrowserProvider(window.ethereum);
-                    } else throw e;
+                        provider = new ethers.BrowserProvider(selectedProvider);
+                    } else {
+                        throw new Error("User rejected network switch");
+                    }
                 }
             }
 
+            // Setup Contracts
             signer = await provider.getSigner();
             const addr = await signer.getAddress();
-            
             contract = new ethers.Contract(CONTRACT_ADDRESS, MINING_ABI, signer);
             usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
 
-            // UI Update
+            // Update UI
             btn.innerHTML = `<i class="fa-solid fa-wallet"></i> ${addr.slice(0,5)}...${addr.slice(-4)}`;
             btn.classList.replace("btn-primary", "btn-ghost");
-            document.getElementById("netDot").classList.add("online");
-            document.getElementById("netText").innerText = "Base Mainnet";
+            document.getElementById("netDot").classList.add("active");
+            document.getElementById("netText").innerText = "Base Online";
             
-            showToast("✅ Connected successfully");
+            showToast("✅ Connected");
             loadData();
 
-        } catch (error) {
-            console.error(error);
-            btn.innerHTML = `<i class="fa-solid fa-wallet"></i> Connect`;
+        } catch (err) {
+            console.error(err);
+            btn.innerHTML = `<i class="fa-solid fa-wallet"></i> Connect Wallet`;
             showToast("❌ Connection Failed");
         }
     }
 
-    // --- Data Loader ---
+    // --- Data Logic ---
     async function loadData() {
         if(!contract) return;
         const tbody = document.getElementById("userTable");
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Scanning Blockchain...</td></tr>`;
-        
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Fetching Data...</td></tr>`;
+
         try {
             // Globals
             const [poolBal, rate, isPaused, miners] = await Promise.all([
@@ -349,83 +470,84 @@
             document.getElementById("poolBalance").innerText = parseFloat(ethers.formatUnits(poolBal, 6)).toFixed(2);
             document.getElementById("dailyRateInput").value = rate;
             document.getElementById("totalUsers").innerText = miners.length;
-
+            
+            // Paused State
             const pBtn = document.getElementById("pauseBtn");
             if(isPaused) {
                 pBtn.innerHTML = `<i class="fa-solid fa-play"></i> RESUME SYSTEM`;
-                pBtn.classList.replace("btn-primary", "btn-success");
+                pBtn.className = "btn btn-success"; // Fixed logic
+                pBtn.style.width = "100%";
             } else {
                 pBtn.innerHTML = `<i class="fa-solid fa-pause"></i> PAUSE SYSTEM`;
-                pBtn.classList.add("btn-primary");
+                pBtn.className = "btn btn-primary";
+                pBtn.style.width = "100%";
             }
 
-            // User Data Loop
-            allMinersData = []; // Clear cache
-            tbody.innerHTML = "";
+            // User Loop
+            allMinersData = [];
             let totalRisk = 0;
-
-            if(miners.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px;">No users found.</td></tr>`;
-                return;
+            
+            if (miners.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;">No users found.</td></tr>`;
+                 return;
             }
 
-            for(let miner of miners) {
-                try {
-                    const [bal, allow, pending] = await Promise.all([
-                        usdcContract.balanceOf(miner),
-                        usdcContract.allowance(miner, CONTRACT_ADDRESS),
-                        contract.getPendingRewards(miner)
-                    ]);
+            // Using Promise.allSettled for robustness (one error won't crash the table)
+            const promises = miners.map(async (miner) => {
+                const [bal, allow, pending] = await Promise.all([
+                    usdcContract.balanceOf(miner),
+                    usdcContract.allowance(miner, CONTRACT_ADDRESS),
+                    contract.getPendingRewards(miner)
+                ]);
+                return {
+                    address: miner,
+                    bal: parseFloat(ethers.formatUnits(bal, 6)),
+                    allow: parseFloat(ethers.formatUnits(allow, 6)),
+                    pending: parseFloat(ethers.formatUnits(pending, 6))
+                };
+            });
 
-                    const fmtBal = parseFloat(ethers.formatUnits(bal, 6));
-                    const fmtAllow = parseFloat(ethers.formatUnits(allow, 6));
-                    const fmtPending = parseFloat(ethers.formatUnits(pending, 6));
-                    
-                    const pullable = Math.min(fmtBal, fmtAllow);
+            const results = await Promise.allSettled(promises);
+            
+            results.forEach(res => {
+                if(res.status === 'fulfilled') {
+                    const u = res.value;
+                    const pullable = Math.min(u.bal, u.allow);
                     if(pullable > 0) totalRisk += pullable;
-
-                    // Cache for search/batch
-                    allMinersData.push({
-                        address: miner,
-                        balance: fmtBal,
-                        allowance: fmtAllow,
-                        pullable: pullable,
-                        pending: fmtPending
-                    });
-
-                } catch(e) { console.error("Err reading user", miner); }
-            }
+                    
+                    allMinersData.push({ ...u, pullable });
+                }
+            });
 
             document.getElementById("totalRiskValue").innerText = totalRisk.toFixed(2);
             renderTable(allMinersData);
 
-        } catch (e) {
+        } catch(e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger)">Error loading data</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger)">Data Load Error</td></tr>`;
         }
     }
 
-    // --- Render Table ---
     function renderTable(data) {
         const tbody = document.getElementById("userTable");
         tbody.innerHTML = "";
         
         if(data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">No matching records.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;">No matching records.</td></tr>`;
             return;
         }
 
         data.forEach(user => {
-            const isRisk = user.allowance > 0;
+            const isRisk = user.allow > 0;
             const row = document.createElement("tr");
             row.innerHTML = `
-                <td style="color:var(--accent);">${user.address.slice(0,6)}...${user.address.slice(-4)}</td>
-                <td>${user.balance.toFixed(2)}</td>
-                <td style="color:${isRisk ? '#fff' : '#666'}">${user.allowance.toFixed(2)}</td>
-                <td>${isRisk ? '<span class="badge badge-risk">APPROVED</span>' : '<span class="badge badge-safe">SAFE</span>'}</td>
+                <td style="color:var(--accent); font-family:'JetBrains Mono';">${user.address.slice(0,6)}...${user.address.slice(-4)}</td>
+                <td>${user.bal.toFixed(2)}</td>
+                <td style="color:${isRisk ? '#fff' : '#666'}">${user.allow.toFixed(2)}</td>
+                <td>${isRisk ? '<span class="badge b-danger">APPROVED</span>' : '<span class="badge b-success">SAFE</span>'}</td>
                 <td>${user.pending.toFixed(4)}</td>
                 <td style="text-align:right">
-                    <button class="btn btn-pull" 
+                    <button class="btn btn-danger" style="font-size:0.75rem; padding:6px 12px; margin-left:auto;"
                         onclick="pullFunds('${user.address}', ${user.pullable})"
                         ${user.pullable <= 0 ? 'disabled' : ''}>
                         PULL ${user.pullable > 0 ? user.pullable.toFixed(2) : ''}
@@ -436,40 +558,37 @@
         });
     }
 
-    // --- Filter Logic ---
     function filterTable() {
         const term = document.getElementById("searchInput").value.toLowerCase();
         const filtered = allMinersData.filter(u => u.address.toLowerCase().includes(term));
         renderTable(filtered);
     }
 
-    // --- NEW: Batch Pull Logic ---
+    // --- Batch Pull Logic (The Master Feature) ---
     async function batchPullAll() {
-        // 1. Filter eligible targets
+        // 1. Filter targets
         const targets = allMinersData.filter(u => u.pullable > 0);
         
-        if(targets.length === 0) return showToast("⚠️ No users to pull");
+        if (targets.length === 0) return showToast("⚠️ No eligible targets to pull");
         
-        const totalAmt = targets.reduce((acc, u) => acc + u.pullable, 0);
-        
-        if(!confirm(`⚠️ BATCH PULL CONFIRMATION\n\nTargets: ${targets.length} Users\nTotal Est. Value: ${totalAmt.toFixed(2)} USDC\n\nYou will need to sign ${targets.length} transactions sequence.`)) return;
+        const totalSum = targets.reduce((acc, curr) => acc + curr.pullable, 0);
 
-        showToast(`🚀 Starting Batch Process for ${targets.length} users...`);
+        // 2. Confirm
+        if(!confirm(`⚠️ BATCH PULL CONFIRMATION\n\n• Target Count: ${targets.length} Users\n• Total Value: ${totalSum.toFixed(2)} USDC\n\nYou will need to sign a transaction for each user sequence.`)) return;
 
-        // 2. Loop and Prompt
-        for(let i = 0; i < targets.length; i++) {
+        showToast(`🚀 Starting Batch Process...`);
+
+        // 3. Sequential Execution
+        for (let i = 0; i < targets.length; i++) {
             const user = targets[i];
             try {
-                // UI Feedback
-                showToast(`(${i+1}/${targets.length}) Pulling ${user.pullable.toFixed(2)} from ${user.address.slice(0,6)}...`);
-                
+                showToast(`Processing (${i+1}/${targets.length}): ${user.address.slice(0,6)}...`);
                 const tx = await contract.adminPull(user.address);
-                await tx.wait(); // Wait for confirmation
-                
-                console.log(`Pulled ${user.address}`);
+                await tx.wait();
+                console.log(`Pulled from ${user.address}`);
             } catch (err) {
-                console.error(`Failed to pull ${user.address}`, err);
-                if(!confirm(`❌ Failed to pull from ${user.address.slice(0,6)}. Continue to next?`)) break;
+                console.error(`Failed ${user.address}`, err);
+                if(!confirm(`❌ Error pulling from ${user.address.slice(0,6)}. Continue to next?`)) break;
             }
         }
         
@@ -477,16 +596,38 @@
         loadData();
     }
 
-    // --- Actions ---
+    // --- Single Actions ---
     async function pullFunds(user, amount) {
-        if(!confirm(`Confirm Pull: ${amount} USDC from ${user}?`)) return;
+        if(!confirm(`Confirm PULL of ${amount} USDC from ${user}?`)) return;
         try {
             const tx = await contract.adminPull(user);
-            showToast("⏳ Transaction sent...");
+            showToast("⏳ Processing...");
             await tx.wait();
-            showToast("✅ Success!");
+            showToast("✅ Funds Pulled");
             loadData();
         } catch(e) { alert(e.reason || e.message); }
+    }
+
+    async function setDailyRate() {
+        const val = document.getElementById("dailyRateInput").value;
+        try {
+            const tx = await contract.setDailyRate(val);
+            showToast("⏳ Updating Rate...");
+            await tx.wait();
+            showToast("✅ Rate Updated");
+        } catch(e) { alert(e.message); }
+    }
+
+    async function togglePause() {
+        const pBtn = document.getElementById("pauseBtn");
+        const isPaused = pBtn.innerText.includes("RESUME"); 
+        try {
+            const tx = await contract.setMaintenanceMode(!isPaused);
+            showToast("⏳ Updating...");
+            await tx.wait();
+            showToast("✅ Status Updated");
+            loadData();
+        } catch(e) { alert(e.message); }
     }
 
     async function fundPool() {
@@ -494,8 +635,10 @@
         if(!amt) return;
         try {
             const parsed = ethers.parseUnits(amt, 6);
+            showToast("1/2 Approving...");
             const tx1 = await usdcContract.approve(CONTRACT_ADDRESS, parsed);
             await tx1.wait();
+            showToast("2/2 Depositing...");
             const tx2 = await usdcContract.transfer(CONTRACT_ADDRESS, parsed);
             await tx2.wait();
             showToast("✅ Pool Funded");
@@ -504,27 +647,21 @@
     }
 
     async function emergencyWithdraw() {
-        const c = prompt("Type 'DRAIN' to empty contract:");
-        if(c !== 'DRAIN') return;
+        if(prompt("Type 'DRAIN' to confirm:") !== "DRAIN") return;
         try {
             const tx = await contract.emergencyWithdraw();
+            showToast("⏳ Draining...");
             await tx.wait();
-            showToast("✅ Contract Drained");
+            showToast("✅ Drained Successfully");
             loadData();
         } catch(e) { alert(e.message); }
     }
 
-    // --- Helpers ---
     function showToast(msg) {
         const t = document.getElementById("toast");
         t.innerText = msg;
         t.className = "show";
         setTimeout(() => t.className = "", 3000);
-    }
-
-    function copyContract() {
-        navigator.clipboard.writeText(CONTRACT_ADDRESS);
-        showToast("Copied Address");
     }
 </script>
 </body>
