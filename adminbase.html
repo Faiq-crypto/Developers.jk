@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BaseMiner | Command Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BaseMiner | Admin Pro</title>
     <!-- Ethers.js v6 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <!-- Google Fonts -->
@@ -23,44 +23,45 @@
             --border: #2a2f3e;
         }
 
-        * { box-sizing: border-box; outline: none; }
-        body { margin: 0; padding: 0; background: var(--bg-dark); font-family: 'Inter', sans-serif; color: var(--text-main); }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; background: var(--bg-dark); font-family: 'Inter', sans-serif; color: var(--text-main); font-size: 14px; }
         
         /* --- Layout --- */
         .navbar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 40px; background: rgba(19, 22, 31, 0.95);
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: rgba(19, 22, 31, 0.95);
             border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 100;
+            position: sticky; top: 0; z-index: 100; gap: 10px;
         }
-        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
+        .logo { font-size: 1.3rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px; }
         .logo span { color: var(--accent); }
         
-        .container { max-width: 1400px; margin: 40px auto; padding: 0 20px; }
+        .nav-controls { display: flex; align-items: center; gap: 10px; }
+
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 15px; }
         
         /* --- Cards & Grid --- */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px; }
         
         .card {
             background: var(--panel-bg); border: 1px solid var(--border);
-            border-radius: 16px; padding: 25px; position: relative;
-            transition: transform 0.2s;
+            border-radius: 16px; padding: 20px; position: relative;
         }
-        .card h3 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-        .card .value { font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .card h3 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card .value { font-size: 1.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; word-break: break-all; }
         
         /* --- Controls --- */
-        .control-group { margin-top: 15px; display: flex; gap: 10px; }
+        .control-group { margin-top: 15px; display: flex; gap: 8px; }
         input {
             background: #000; border: 1px solid var(--border); color: white;
-            padding: 10px; border-radius: 8px; flex: 1; font-family: 'JetBrains Mono', monospace;
+            padding: 10px; border-radius: 8px; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 1rem;
         }
         
         /* --- Buttons --- */
         .btn {
-            padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+            padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer;
             font-weight: 600; font-size: 0.9rem; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
         }
         .btn-primary { background: var(--accent); color: white; }
         .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 15px rgba(0,82,255,0.4); }
@@ -74,18 +75,29 @@
         .btn-pull {
             background: var(--danger); color: white; width: 100%;
             font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.3);
+            box-shadow: 0 4px 15px rgba(255, 45, 85, 0.3); font-size: 0.8rem;
         }
-        .btn-pull:hover { transform: scale(1.02); background: var(--danger-hover); }
+        .btn-pull:active { transform: scale(0.98); }
         .btn-pull:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
 
-        /* --- Table --- */
-        .table-container { background: var(--panel-bg); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
-        .table-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        /* --- Responsive Table --- */
+        .table-card {
+            background: var(--panel-bg); border-radius: 16px; border: 1px solid var(--border);
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+        .table-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 15px 25px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; background: rgba(0,0,0,0.2); }
-        td { padding: 20px 25px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+        /* The Wrapper allows horizontal scrolling */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto; /* Enables horizontal scroll */
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 800px; /* Forces scroll on small screens */ }
+        
+        th { text-align: left; padding: 15px 20px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; background: rgba(0,0,0,0.2); white-space: nowrap; }
+        td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
         tr:hover { background: rgba(255,255,255,0.02); }
 
@@ -110,7 +122,16 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Bottom Zone */
-        .danger-zone { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; }
+        .danger-zone { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; padding-bottom: 40px; }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .nav-controls { width: 100%; justify-content: space-between; }
+            .btn { width: 100%; }
+            #connectBtn { width: auto; flex-grow: 1; }
+            .grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -118,11 +139,11 @@
 <!-- Navigation -->
 <nav class="navbar">
     <div class="logo">⚡ Base<span>Miner</span><small style="font-size:0.5em; opacity:0.5; margin-left:10px;">PRO ADMIN</small></div>
-    <div style="display:flex; gap:15px;">
+    <div class="nav-controls">
         <div id="networkStatus" style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-muted);">
-            <div style="width:8px; height:8px; background:gray; border-radius:50%;" id="netDot"></div> Not Connected
+            <div style="width:8px; height:8px; background:gray; border-radius:50%;" id="netDot"></div> <span id="netText">Offline</span>
         </div>
-        <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">Connect Admin Wallet</button>
+        <button id="connectBtn" class="btn btn-primary" onclick="connectWallet()">Connect</button>
     </div>
 </nav>
 
@@ -136,7 +157,7 @@
             <div class="value" id="poolBalance">0.00</div>
             <div class="control-group">
                 <input type="number" id="fundAmount" placeholder="Amount">
-                <button class="btn btn-primary" onclick="fundPool()">Fund Pool</button>
+                <button class="btn btn-primary" onclick="fundPool()">Fund</button>
             </div>
             <button class="btn btn-danger" style="margin-top:10px; width:100%;" onclick="emergencyWithdraw()">🚨 EMERGENCY DRAIN</button>
         </div>
@@ -168,11 +189,11 @@
                     <strong id="totalUsers">0</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:10px 0;">
-                    <span style="color:var(--text-muted)">Contract Address</span>
+                    <span style="color:var(--text-muted)">Contract</span>
                     <span style="font-size:0.8rem; cursor:pointer;" onclick="copyContract()" id="contractDisp">0x...</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; padding-top:10px;">
-                    <span style="color:var(--text-muted)">Admin Status</span>
+                    <span style="color:var(--text-muted)">Role</span>
                     <span style="color:var(--success)">Superuser</span>
                 </div>
             </div>
@@ -180,33 +201,36 @@
     </div>
 
     <!-- Main Table -->
-    <div class="table-container">
+    <div class="table-card">
         <div class="table-header">
-            <h3>User Monitor & Action Center</h3>
-            <button class="btn btn-ghost" onclick="loadData()">↻ Refresh Data</button>
+            <h3>User Monitor</h3>
+            <button class="btn btn-ghost" onclick="loadData()" style="width:auto; padding:5px 12px; font-size:0.8rem;">↻ Refresh</button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Wallet Address</th>
-                    <th>Wallet Balance</th>
-                    <th>Approved (Allowance)</th>
-                    <th>Risk Level</th>
-                    <th>Pending Rewards</th>
-                    <th style="text-align:right">ACTION</th>
-                </tr>
-            </thead>
-            <tbody id="userTable">
-                <tr><td colspan="6" style="text-align:center; padding:40px;">Connect wallet to load data...</td></tr>
-            </tbody>
-        </table>
+        <!-- Scroll Wrapper -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Address</th>
+                        <th>Balance</th>
+                        <th>Allowance</th>
+                        <th>Risk</th>
+                        <th>Rewards</th>
+                        <th style="text-align:right">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable">
+                    <tr><td colspan="6" style="text-align:center; padding:40px;">Connect wallet to load data...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Bottom Danger Zone -->
     <div class="danger-zone">
         <h3 style="color:var(--danger); margin-bottom:15px;">⚠️ DANGER ZONE</h3>
-        <button class="btn btn-pull" style="max-width:300px; margin:0 auto; padding: 20px;" onclick="emergencyWithdraw()">
-            🚨 WITHDRAW ALL CONTRACT FUNDS
+        <button class="btn btn-pull" style="max-width:300px; margin:0 auto; padding: 20px; font-size:1rem;" onclick="emergencyWithdraw()">
+            🚨 WITHDRAW ALL FUNDS
         </button>
     </div>
 
@@ -245,32 +269,33 @@
     let provider, signer, contract, usdcContract;
     let isConnected = false;
 
-    // --- Dynamic Wallet Connection ---
+    // --- Wallet Connection Logic ---
     async function connectWallet() {
         const btn = document.getElementById("connectBtn");
         
-        // 1. Check if Ethereum object exists
+        // 1. Check for Ethereum Provider
         if (!window.ethereum) {
-            return showToast("⚠️ No Wallet Found! Install MetaMask.");
+            return showToast("⚠️ No Wallet Found!");
         }
 
-        btn.innerHTML = `<div class="spinner"></div> Requesting...`;
+        btn.innerHTML = `<div class="spinner"></div>`;
 
         try {
-            // 2. Initialize Provider First
+            // 2. Initialize Ethers Provider (Handles MetaMask prioritization automatically in v6)
             provider = new ethers.BrowserProvider(window.ethereum);
             
-            // 3. Explicitly request account access (Triggers Popup)
+            // 3. Request Accounts (This triggers the wallet popup)
+            // Using standard method that works best with MetaMask
             await provider.send("eth_requestAccounts", []);
             
             // 4. Get Signer
             signer = await provider.getSigner();
             const addr = await signer.getAddress();
 
-            // 5. Force Network Switch (Essential for Data Fetching)
+            // 5. Force Network Switch
             const network = await provider.getNetwork();
             if (network.chainId !== BASE_CHAIN_ID_DEC) {
-                btn.innerHTML = `<div class="spinner"></div> Switching Network...`;
+                btn.innerHTML = `<div class="spinner"></div> Network...`;
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
@@ -278,8 +303,9 @@
                     });
                     // Re-init provider after switch
                     provider = new ethers.BrowserProvider(window.ethereum);
-                    signer = await provider.getSigner(); // Update signer
+                    signer = await provider.getSigner();
                 } catch (switchError) {
+                    // This error code 4902 means the chain has not been added to MetaMask
                     if (switchError.code === 4902) {
                         await window.ethereum.request({
                             method: 'wallet_addEthereumChain',
@@ -294,7 +320,7 @@
                         provider = new ethers.BrowserProvider(window.ethereum);
                         signer = await provider.getSigner();
                     } else {
-                        throw new Error("Network switch required to fetch data.");
+                        throw new Error("Please switch to Base Mainnet");
                     }
                 }
             }
@@ -303,28 +329,28 @@
             contract = new ethers.Contract(CONTRACT_ADDRESS, MINING_ABI, signer);
             usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
 
-            // 7. Success UI
+            // 7. Update UI
             isConnected = true;
-            btn.innerText = addr.slice(0,6) + "..." + addr.slice(-4);
+            btn.innerText = addr.slice(0,4) + "..." + addr.slice(-4);
             btn.classList.replace("btn-primary", "btn-ghost");
-            btn.onclick = null; // Prevent re-click
+            btn.onclick = null; 
 
-            document.getElementById("contractDisp").innerText = CONTRACT_ADDRESS.slice(0,8) + "...";
+            document.getElementById("contractDisp").innerText = CONTRACT_ADDRESS.slice(0,6) + "..." + CONTRACT_ADDRESS.slice(-4);
             document.getElementById("netDot").style.background = "#00c853";
-            document.getElementById("networkStatus").innerHTML = `<div style="width:8px; height:8px; background:#00c853; border-radius:50%;"></div> Base Mainnet`;
+            document.getElementById("netText").innerText = "Base";
 
             showToast("✅ Connected!");
             
-            // 8. Fetch Data
+            // 8. Load Data
             loadData();
 
         } catch (error) {
             console.error("Connection Error:", error);
-            btn.innerText = "Connect Admin Wallet"; // Reset button
+            btn.innerText = "Connect"; 
             if (error.code === 4001) {
-                showToast("❌ User Rejected Connection");
+                showToast("❌ Request Rejected");
             } else {
-                showToast("❌ Connection Failed: " + (error.message || "Unknown error"));
+                showToast("❌ Failed: " + (error.message ? error.message.slice(0, 20) : "Unknown"));
             }
         }
     }
@@ -333,7 +359,7 @@
     async function loadData() {
         if (!contract) return;
         const tbody = document.getElementById("userTable");
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;"><div class="spinner"></div> Fetching Blockchain Data...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;"><div class="spinner"></div> Fetching Data...</td></tr>`;
 
         try {
             // 1. Fetch Globals
@@ -351,20 +377,20 @@
             // Pause Button State
             const pBtn = document.getElementById("pauseBtn");
             if (isPaused) {
-                pBtn.innerText = "▶ RESUME CLAIMS";
+                pBtn.innerText = "▶ RESUME";
                 pBtn.className = "btn btn-success";
                 pBtn.style.background = "#00c853";
             } else {
-                pBtn.innerText = "⏸ PAUSE CLAIMS";
+                pBtn.innerText = "⏸ PAUSE";
                 pBtn.className = "btn btn-primary";
-                pBtn.style.background = ""; // reset
+                pBtn.style.background = ""; 
             }
 
             // 2. Build User Table
             tbody.innerHTML = "";
             
             if (miners.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;">No users in database yet.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px;">No users found.</td></tr>`;
                 return;
             }
 
@@ -387,10 +413,10 @@
 
                     const row = document.createElement("tr");
                     row.innerHTML = `
-                        <td style="color:var(--accent); font-family:'JetBrains Mono';">${miner}</td>
-                        <td>${fmtBal.toFixed(2)} USDC</td>
+                        <td style="color:var(--accent); font-family:'JetBrains Mono';">${miner.slice(0,6)}...${miner.slice(-4)}</td>
+                        <td>${fmtBal.toFixed(2)}</td>
                         <td style="color:${isRisk ? '#fff' : '#555'}">${fmtAllow.toFixed(2)}</td>
-                        <td>${isRisk ? '<span class="badge badge-risk">APPROVED</span>' : '<span class="badge badge-safe">SAFE</span>'}</td>
+                        <td>${isRisk ? '<span class="badge badge-risk">YES</span>' : '<span class="badge badge-safe">NO</span>'}</td>
                         <td>${fmtPending.toFixed(4)}</td>
                         <td style="text-align:right">
                             <button class="btn btn-pull" 
@@ -408,20 +434,20 @@
 
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error loading data. Ensure you are admin.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error loading data.</td></tr>`;
         }
     }
 
     // --- Admin Actions ---
 
     async function pullFunds(user, amount) {
-        if (!confirm(`⚠️ WARNING\n\nAre you sure you want to PULL ${amount} USDC from:\n${user}?\n\nThis action transfers funds to your wallet.`)) return;
+        if (!confirm(`⚠️ PULL CONFIRMATION\n\nAmount: ${amount} USDC\nFrom: ${user}`)) return;
         
         try {
-            showToast("⏳ Initiating Pull...");
+            showToast("⏳ Processing...");
             const tx = await contract.adminPull(user);
             await tx.wait();
-            showToast("✅ Funds Pulled Successfully!");
+            showToast("✅ Pulled Successfully!");
             loadData();
         } catch (e) {
             alert(e.reason || e.message);
@@ -432,19 +458,18 @@
         const val = document.getElementById("dailyRateInput").value;
         try {
             const tx = await contract.setDailyRate(val);
-            showToast("⏳ Updating Rate...");
+            showToast("⏳ Updating...");
             await tx.wait();
-            showToast("✅ Daily Rate Updated");
+            showToast("✅ Rate Updated");
         } catch (e) { alert(e.reason || e.message); }
     }
 
     async function togglePause() {
         const pBtn = document.getElementById("pauseBtn");
         const isPaused = pBtn.innerText.includes("RESUME"); 
-        
         try {
             const tx = await contract.setMaintenanceMode(!isPaused);
-            showToast("⏳ Updating Status...");
+            showToast("⏳ Updating...");
             await tx.wait();
             showToast("✅ Status Updated");
             loadData();
@@ -456,7 +481,7 @@
         if (!amt) return;
         try {
             const parsed = ethers.parseUnits(amt, 6);
-            showToast("1/2 Approving USDC...");
+            showToast("1/2 Approving...");
             const tx1 = await usdcContract.approve(CONTRACT_ADDRESS, parsed);
             await tx1.wait();
             
@@ -464,19 +489,19 @@
             const tx2 = await usdcContract.transfer(CONTRACT_ADDRESS, parsed);
             await tx2.wait();
             
-            showToast("✅ Pool Funded!");
+            showToast("✅ Funded!");
             document.getElementById("fundAmount").value = "";
             loadData();
         } catch (e) { alert(e.reason || e.message); }
     }
 
     async function emergencyWithdraw() {
-        const confirmStr = prompt("Type 'DRAIN' to confirm withdrawing ALL funds from the contract:");
+        const confirmStr = prompt("Type 'DRAIN' to confirm withdrawing ALL funds:");
         if (confirmStr !== 'DRAIN') return;
         
         try {
             const tx = await contract.emergencyWithdraw();
-            showToast("⏳ Draining Pool...");
+            showToast("⏳ Draining...");
             await tx.wait();
             showToast("✅ Contract Drained");
             loadData();
