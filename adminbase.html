@@ -105,10 +105,8 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
         
-        /* Loading Spinner */
-        .spinner {
-            width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite;
-        }
+        /* Spinner */
+        .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
@@ -234,13 +232,27 @@
     ];
 
     let provider, signer, contract, usdcContract;
+    let isConnected = false;
+
+    // --- On Load Check ---
+    window.addEventListener('load', async () => {
+        // If MetaMask is unlocked and on Base, auto-connect silently
+        if (window.ethereum && window.ethereum.selectedAddress) {
+            // Check network before auto-connecting
+            const tempProvider = new ethers.BrowserProvider(window.ethereum);
+            const network = await tempProvider.getNetwork();
+            if(network.chainId === BASE_CHAIN_ID_DEC) {
+                connectWallet(true); // Silent connect
+            }
+        }
+    });
 
     // --- Single Tap Connection Logic ---
-    async function connectWallet() {
+    async function connectWallet(isSilent = false) {
         if (!window.ethereum) return showToast("⚠️ Wallet not found! Install MetaMask.");
         
         const btn = document.getElementById("connectBtn");
-        btn.innerHTML = `<div class="spinner"></div> Connecting...`;
+        if(!isSilent) btn.innerHTML = `<div class="spinner"></div> Connecting...`;
 
         try {
             // 1. Request Accounts
@@ -249,7 +261,7 @@
             // 2. Init Provider
             provider = new ethers.BrowserProvider(window.ethereum);
             
-            // 3. FORCE NETWORK SWITCH (Single Tap Logic)
+            // 3. FORCE NETWORK SWITCH (Internal logic, NO PAGE RELOAD)
             const network = await provider.getNetwork();
             if (network.chainId !== BASE_CHAIN_ID_DEC) {
                 try {
@@ -257,10 +269,9 @@
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: BASE_CHAIN_ID_HEX }],
                     });
-                    // Re-init provider after switch to ensure correct context
+                    // Re-init provider after switch to ensure fresh state
                     provider = new ethers.BrowserProvider(window.ethereum);
                 } catch (switchError) {
-                    // This error code 4902 means the chain has not been added to MetaMask
                     if (switchError.code === 4902) {
                         await window.ethereum.request({
                             method: 'wallet_addEthereumChain',
@@ -284,25 +295,30 @@
             contract = new ethers.Contract(CONTRACT_ADDRESS, MINING_ABI, signer);
             usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
             
+            isConnected = true;
+
             // 5. Update UI
             const addr = await signer.getAddress();
             btn.innerText = addr.slice(0,6) + "..." + addr.slice(-4);
             btn.classList.replace("btn-primary", "btn-ghost");
-            btn.onclick = null; // Disable click once connected
+            // Remove click listener to prevent reconnect loops
+            btn.onclick = null; 
             
             document.getElementById("contractDisp").innerText = CONTRACT_ADDRESS.slice(0,8) + "...";
             document.getElementById("netDot").style.background = "#00c853";
             document.getElementById("networkStatus").innerHTML = `<div style="width:8px; height:8px; background:#00c853; border-radius:50%;"></div> Base Mainnet`;
 
-            showToast("✅ Connected to Base!");
+            if(!isSilent) showToast("✅ Connected to Base!");
             
             // 6. Load Data
             loadData();
 
         } catch (error) {
             console.error(error);
-            btn.innerText = "Connect Admin Wallet"; // Reset button
-            showToast("❌ Connection Failed: " + (error.reason || error.message));
+            if(!isSilent) {
+                btn.innerText = "Connect Admin Wallet"; // Reset button
+                showToast("❌ Connection Failed");
+            }
         }
     }
 
@@ -310,7 +326,7 @@
     async function loadData() {
         if (!contract) return;
         const tbody = document.getElementById("userTable");
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;"><div style="display:inline-block;" class="spinner"></div> Scanning Blockchain...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;"><div class="spinner"></div> Scanning Blockchain...</td></tr>`;
 
         try {
             // 1. Fetch Globals
@@ -359,7 +375,6 @@
 
                 // Risk Logic
                 const isRisk = fmtAllow > 0;
-                // We can pull the minimum of Balance or Allowance
                 const pullableAmount = Math.min(fmtBal, fmtAllow);
 
                 const row = document.createElement("tr");
@@ -470,10 +485,30 @@
         showToast("Address Copied!");
     }
 
-    // Listeners for Account/Chain changes (Robustness)
+    // --- Smart Listeners (NO PAGE RELOAD) ---
     if (window.ethereum) {
-        window.ethereum.on('accountsChanged', () => window.location.reload());
-        window.ethereum.on('chainChanged', () => window.location.reload());
+        // If user changes account in wallet, just re-connect logic silently
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if(accounts.length > 0) connectWallet(true);
+            else {
+                document.getElementById("connectBtn").innerText = "Connect Admin Wallet";
+                document.getElementById("connectBtn").onclick = connectWallet;
+                isConnected = false;
+            }
+        });
+
+        // If user changes chain in wallet, re-init provider, DO NOT RELOAD PAGE
+        window.ethereum.on('chainChanged', async (chainId) => {
+            // Ethers v6 recommendation implies reloading, but we want to avoid the "glitch"
+            // So we just re-instantiate the provider and check logic.
+            provider = new ethers.BrowserProvider(window.ethereum);
+            const net = await provider.getNetwork();
+            if(net.chainId === BASE_CHAIN_ID_DEC) {
+                connectWallet(true);
+            } else {
+                showToast("⚠️ Network Changed: Please switch back to Base");
+            }
+        });
     }
 
 </script>
